@@ -52,6 +52,7 @@ export class CartService {
    * @returns The cart with the given ID.
    */
   async getCart(cartId: string): Promise<ExperienceCart> {
+    console.log('getCart', cartId);
     const record = this.getCartOrThrow(cartId);
     const { result: items } = await this.runWithRecovery(record, (contextId) =>
       this.salesforceClient.getItems(contextId),
@@ -84,6 +85,7 @@ export class CartService {
    */
   private getCartOrThrow(cartId: string): CartRecord {
     const record = this.store.getCart(cartId);
+    console.log('getCartOrThrow', record);
     if (!record) {
       throw new CartNotFoundError(cartId);
     }
@@ -108,6 +110,7 @@ export class CartService {
         !(error instanceof SalesforceContextExpiredError) &&
         !(error instanceof SalesforceContextMissingError)
       ) {
+        console.log('SF expired or missing', error);
         throw error;
       }
       const recoveredRecord = await this.recoverCart(record);
