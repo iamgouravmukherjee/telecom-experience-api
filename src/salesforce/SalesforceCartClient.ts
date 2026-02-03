@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { CartItem } from '../types';
 import {
+  CartItemNotFoundError,
   SalesforceContextExpiredError,
   SalesforceContextMissingError,
 } from '../errors';
@@ -43,7 +44,7 @@ export class SalesforceCartClient {
    * @param options - Configuration options for the client.
    */
   constructor(options: SalesforceCartClientOptions = {}) {
-    this.contextTtlMs = options.contextTtlMs ?? 1 * 60 * 1000; // default 1 minutes
+    this.contextTtlMs = options.contextTtlMs ?? 5 * 60 * 1000;
     this.now = options.now ?? Date.now;
   }
 
@@ -118,6 +119,16 @@ export class SalesforceCartClient {
   async setItems(contextId: string, items: CartItem[]): Promise<CartItem[]> {
     const context = this.ensureActiveContext(contextId);
     context.items = cloneItems(items);
+    return cloneItems(context.items);
+  }
+
+  async removeItem(contextId: string, sku: string): Promise<CartItem[]> {
+    const context = this.ensureActiveContext(contextId);
+    const index = context.items.findIndex((item) => item.sku === sku);
+    if (index === -1) {
+      throw new CartItemNotFoundError(sku);
+    }
+    context.items.splice(index, 1);
     return cloneItems(context.items);
   }
 

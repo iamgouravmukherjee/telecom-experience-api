@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CartService } from '../src/services/CartService';
 import { InMemoryCartStore } from '../src/store/inMemoryCartStore';
 import { SalesforceCartClient } from '../src/salesforce/SalesforceCartClient';
-import { ValidationError, CartNotFoundError } from '../src/errors';
+import { ValidationError, CartNotFoundError, CartItemNotFoundError } from '../src/errors';
 
 const createCartServiceHarness = () => {
   let currentTime = 0;
@@ -57,6 +57,19 @@ describe('CartService', () => {
     );
     await expect(service.addItem('exp_test', { sku: 'PLAN', quantity: 0 })).rejects.toBeInstanceOf(
       ValidationError,
+    );
+  });
+
+  it('removes items and errors when sku missing', async () => {
+    const { service } = createCartServiceHarness();
+    await service.createCart();
+    await service.addItem('exp_test', { sku: 'PLAN', quantity: 1 });
+
+    const updated = await service.removeItem('exp_test', 'PLAN');
+    expect(updated.items).toEqual([]);
+
+    await expect(service.removeItem('exp_test', 'PLAN')).rejects.toBeInstanceOf(
+      CartItemNotFoundError,
     );
   });
 

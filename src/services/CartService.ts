@@ -52,7 +52,6 @@ export class CartService {
    * @returns The cart with the given ID.
    */
   async getCart(cartId: string): Promise<ExperienceCart> {
-    console.log('getCart', cartId);
     const record = this.getCartOrThrow(cartId);
     const { result: items } = await this.runWithRecovery(record, (contextId) =>
       this.salesforceClient.getItems(contextId),
@@ -78,6 +77,17 @@ export class CartService {
     return { cartId, items: cloneItems(items) };
   }
 
+  async removeItem(cartId: string, sku: string): Promise<ExperienceCart> {
+    this.validateSku(sku);
+    const record = this.getCartOrThrow(cartId);
+    const { result: items, record: updatedRecord } = await this.runWithRecovery(
+      record,
+      (contextId) => this.salesforceClient.removeItem(contextId, sku),
+    );
+    this.store.saveCart({ ...updatedRecord, items: cloneItems(items) });
+    return { cartId, items: cloneItems(items) };
+  }
+
   /**
    * Retrieves the cart with the given ID.
    * @param cartId The ID of the cart to retrieve.
@@ -85,7 +95,6 @@ export class CartService {
    */
   private getCartOrThrow(cartId: string): CartRecord {
     const record = this.store.getCart(cartId);
-    console.log('getCartOrThrow', record);
     if (!record) {
       throw new CartNotFoundError(cartId);
     }
@@ -110,7 +119,6 @@ export class CartService {
         !(error instanceof SalesforceContextExpiredError) &&
         !(error instanceof SalesforceContextMissingError)
       ) {
-        console.log('SF expired or missing', error);
         throw error;
       }
       const recoveredRecord = await this.recoverCart(record);
@@ -166,10 +174,18 @@ export class CartService {
    * @param item The cart item to validate.
    */
   private validateCartItem(item: CartItem): void {
-    if (!item.sku || typeof item.sku !== 'string') {
+    this.validateSku(item.sku);
+    this.validateQuantity(item.quantity);
+  }
+
+  private validateSku(sku: string): void {
+    if (!sku || typeof sku !== 'string' || sku.trim().length === 0) {
       throw new ValidationError('sku must be a non-empty string');
     }
-    if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
+  }
+
+  private validateQuantity(quantity: number): void {
+    if (!Number.isInteger(quantity) || quantity <= 0) {
       throw new ValidationError('quantity must be a positive integer');
     }
   }

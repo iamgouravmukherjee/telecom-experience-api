@@ -1,13 +1,22 @@
 import express, { NextFunction, Request, Response } from 'express';
+import swaggerUi from 'swagger-ui-express';
+
 import { CartService } from './services/CartService';
 import { InMemoryCartStore } from './store/inMemoryCartStore';
 import { SalesforceCartClient } from './salesforce/SalesforceCartClient';
 import {
+  CartItemNotFoundError,
   CartNotFoundError,
   CartRecoveryFailedError,
+  UnauthorizedError,
   ValidationError,
 } from './errors';
-import { CreateAppOptions } from './types';
+import { AppConfig, CreateAppOptions } from './types';
+import { loadConfig } from './config';
+import { createAuthMiddleware } from './middleware/auth';
+import { addItemBodySchema, cartIdParamsSchema, deleteItemParamsSchema } from './validation/schemas';
+import { parseWithSchema } from './validation/validate';
+import { openApiSpec } from './docs/swagger';
 
 
 /**
@@ -17,9 +26,11 @@ import { CreateAppOptions } from './types';
  * providing a ready-to-use implementation for cart management when no custom service is provided.
  * @returns CartService with default dependencies
  */
-const buildDefaultCartService = (): CartService => {
+const buildDefaultCartService = (config: AppConfig): CartService => {
   const store = new InMemoryCartStore();
-  const salesforceClient = new SalesforceCartClient();
+  const salesforceClient = new SalesforceCartClient({
+    contextTtlMs: config.salesforceContextTtlMs,
+  });
   return new CartService({ store, salesforceClient });
 };
 
@@ -47,10 +58,18 @@ const asyncHandler = (
  * @returns Configured Express application instance
  */
 export const createApp = (options: CreateAppOptions = {}) => {
+  const config = options.config ?? loadConfig();
+  const cartService = options.cartService ?? buildDefaultCartService(config);
+  const enableDocs = options.enableDocs ?? true;
   const app = express();
-  const cartService = options.cartService ?? buildDefaultCartService();
 
   app.use(express.json());
+
+  if (enableDocs) {
+    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
+  }
+
+  app.use(createAuthMiddleware(config.apiKey));
 
   /**
    * POST /cart - Create a new cart
@@ -71,10 +90,7 @@ export const createApp = (options: CreateAppOptions = {}) => {
   app.get(
     '/cart/:cartId',
     asyncHandler(async (req, res) => {
-      const cartId = req.params.cartId;
-      if (!cartId) {
-        throw new ValidationError('cartId is required');
-      }
+      const { cartId } = parseWithSchema(cartIdParamsSchema, req.params);
       const cart = await cartService.getCart(cartId);
       res.status(200).json(cart);
     }),
@@ -87,19 +103,18 @@ export const createApp = (options: CreateAppOptions = {}) => {
   app.post(
     '/cart/:cartId/items',
     asyncHandler(async (req, res) => {
-      const cartId = req.params.cartId;
-      if (!cartId) {
-        throw new ValidationError('cartId is required');
-      }
+      const { cartId } = parseWithSchema(cartIdParamsSchema, req.params);
+      const body = parseWithSchema(addItemBodySchema, req.body);
+      const cart = await cartService.addItem(cartId, body);
+      res.status(200).json(cart);
+    }),
+  );
 
-      const { sku, quantity } = req.body ?? {};
-      if (typeof sku !== 'string' || sku.trim().length === 0) {
-        throw new ValidationError('sku must be a non-empty string');
-      }
-      if (!Number.isInteger(quantity) || quantity <= 0) {
-        throw new ValidationError('quantity must be a positive integer');
-      }
-      const cart = await cartService.addItem(cartId, { sku, quantity });
+  app.delete(
+    '/cart/:cartId/items/:sku',
+    asyncHandler(async (req, res) => {
+      const { cartId, sku } = parseWithSchema(deleteItemParamsSchema, req.params);
+      const cart = await cartService.removeItem(cartId, sku);
       res.status(200).json(cart);
     }),
   );
@@ -113,7 +128,10 @@ export const createApp = (options: CreateAppOptions = {}) => {
       if (error instanceof ValidationError) {
         return res.status(400).json({ error: error.message });
       }
-      if (error instanceof CartNotFoundError) {
+      if (error instanceof UnauthorizedError) {
+        return res.status(401).json({ error: error.message });
+      }
+      if (error instanceof CartNotFoundError || error instanceof CartItemNotFoundError) {
         return res.status(404).json({ error: error.message });
       }
       if (error instanceof CartRecoveryFailedError) {

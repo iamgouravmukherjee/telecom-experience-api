@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SalesforceCartClient } from '../src/salesforce/SalesforceCartClient';
 import {
+  CartItemNotFoundError,
   SalesforceContextExpiredError,
   SalesforceContextMissingError,
 } from '../src/errors';
@@ -57,6 +58,19 @@ describe('SalesforceCartClient', () => {
     const { client } = createClientWithClock();
     await expect(client.getItems('unknown')).rejects.toBeInstanceOf(
       SalesforceContextMissingError,
+    );
+  });
+
+  it('removes items by sku and errors when missing', async () => {
+    const { client } = createClientWithClock();
+    const { contextId } = await client.createContext();
+
+    await client.addItem(contextId, { sku: 'PLAN', quantity: 1 });
+    let items = await client.removeItem(contextId, 'PLAN');
+    expect(items).toEqual([]);
+
+    await expect(client.removeItem(contextId, 'PLAN')).rejects.toBeInstanceOf(
+      CartItemNotFoundError,
     );
   });
 });

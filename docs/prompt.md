@@ -122,3 +122,136 @@ Implemented the telecom Experience API following the architecture:
    - Test run: `npm run test` (passed).
 
 Next steps (optional): integrate linting (ESLint/Prettier) and add HTTP-level integration tests using supertest for end-to-end verification.
+
+### User Input
+
+Great progress so far. Add the following, so that there is production readiness:
+
+1. An API to delete items from the cart.
+2. Consider implementing a middleware to handle API security—for example, validating a static token passed in the request headers.
+3. API requests should be validated against strict schemas to prevent extra or unexpected parameters or objects from being accepted.
+4. Environment-specific configuration files are missing. Separate configurations for dev, pre-prod, and prod environments should be maintained.
+5. Use Swagger (OpenAPI) for API documentation to greatly improve usability and clarity for consumers of the APIs.
+
+*Updated todo list*
+
+*Updated todo list*
+
+*Viewed [app.ts](file:///c:/Users/goura/OneDrive/Desktop/personal/code/TCS/assignment/src/app.ts) *
+
+*Viewed [package.json](file:///c:/Users/goura/OneDrive/Desktop/personal/code/TCS/assignment/package.json) *
+
+*Viewed [types.ts](file:///c:/Users/goura/OneDrive/Desktop/personal/code/TCS/assignment/src/types.ts) *
+
+*Viewed [SalesforceCartClient.ts](file:///c:/Users/goura/OneDrive/Desktop/personal/code/TCS/assignment/src/salesforce/SalesforceCartClient.ts) *
+
+*Found code context*
+
+*Edited relevant file*
+
+*Grep searched codebase*
+
+*Edited relevant file*
+
+*Edited relevant file*
+
+*User accepted the command `npm install`*
+
+*Checked command status*
+
+*Checked command status*
+
+*Checked command status*
+
+*Checked command status*
+
+*Edited relevant file*
+
+*Edited relevant file*
+
+*Viewed [errors.ts](file:///c:/Users/goura/OneDrive/Desktop/personal/code/TCS/assignment/src/errors.ts) *
+
+*Viewed [server.ts](file:///c:/Users/goura/OneDrive/Desktop/personal/code/TCS/assignment/src/server.ts) *
+
+*Edited relevant file*
+
+*Listed directory [config](file:///c:/Users/goura/OneDrive/Desktop/personal/code/TCS/assignment/src/config) *
+
+*Viewed [CartService.ts](file:///c:/Users/goura/OneDrive/Desktop/personal/code/TCS/assignment/src/services/CartService.ts) *
+
+*Edited relevant file*
+
+*Edited relevant file*
+
+*Edited relevant file*
+
+*Edited relevant file*
+
+*Edited relevant file*
+
+*Edited relevant file*
+
+*Edited relevant file*
+
+*Edited relevant file*
+
+*Edited relevant file*
+
+*Edited relevant file*
+
+*Edited relevant file*
+
+*Edited relevant file*
+
+*User accepted the command `npm install`*
+
+*Checked command status*
+
+*Updated todo list*
+
+*Viewed [cartService.test.ts](file:///c:/Users/goura/OneDrive/Desktop/personal/code/TCS/assignment/tests/cartService.test.ts) *
+
+*Edited relevant file*
+
+### User Input
+
+Continue
+
+*Updated todo list*
+
+*Edited relevant file*
+
+*Edited relevant file*
+
+*User accepted the command `npm test`*
+
+*Checked command status*
+
+*Checked command status*
+
+*Updated todo list*
+
+### Planner Response
+
+Implemented production-readiness features across the Experience API:
+
+1. **Config & infrastructure**
+   - Added env-specific configs (dev/preprod/prod) with loader and server bootstrap using [loadConfig](file:///c:/Users/goura/OneDrive/Desktop/personal/code/TCS/assignment/src/config/index.ts:19:0-37:2) @src/config#files @src/server.ts#1-13.
+   - Introduced [AppConfig](file:///c:/Users/goura/OneDrive/Desktop/personal/code/TCS/assignment/src/types.ts:27:0-32:1) typing and optional overrides in [createApp](file:///c:/Users/goura/OneDrive/Desktop/personal/code/TCS/assignment/src/app.ts:52:0-145:2) @src/types.ts#1-41.
+   - Added static API-key auth middleware @src/middleware/auth.ts#1-16.
+
+2. **API layer**
+   - Added Zod-based schemas + parser enforcing strict request shapes @src/validation/schemas.ts#1-15 @src/validation/validate.ts#1-11.
+   - Enhanced routes with validation, DELETE `/cart/:cartId/items/:sku`, and Swagger docs endpoint @src/app.ts#1-143.
+   - Extended error types for item-not-found & unauthorized cases @src/errors.ts#1-88.
+
+3. **Domain & docs**
+   - Salesforce client now supports removal + TTL parameterization @src/salesforce/SalesforceCartClient.ts#1-134.
+   - CartService integrates removeItem path, cleans validation helpers @src/services/CartService.ts#1-192.
+   - Auth-aware OpenAPI spec served via Swagger UI @src/docs/swagger.ts#1-146.
+
+4. **Testing**
+   - Added coverage for remove-item flows in SalesforceCartClient and CartService @tests/salesforceCartClient.test.ts#1-75 @tests/cartService.test.ts#1-79.
+   - All tests pass: `npm test`.
+
+Next steps: consider integrating ESLint/Prettier and add integration tests (e.g., supertest) hitting the Express stack with auth headers.

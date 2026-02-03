@@ -59,6 +59,9 @@ The server will start on the configured port (default: 3000).
 npm run test
 ```
 
+### Swagger 
+```localhost:3000/api-docs```
+
 #### Unit tests focus on:
 - Cart creation
 - Adding items

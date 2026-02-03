@@ -60,6 +60,23 @@ export class CartRecoveryFailedError extends Error {
 }
 
 /**
+ * Thrown when a cart item cannot be found during delete/update operations.
+ */
+export class CartItemNotFoundError extends Error {
+  constructor(public readonly sku: string, message?: string) {
+    super(message ?? `Item with sku ${sku} was not found in the cart`);
+    this.name = 'CartItemNotFoundError';
+  }
+}
+
+export class UnauthorizedError extends Error {
+  constructor(message = 'Unauthorized') {
+    super(message);
+    this.name = 'UnauthorizedError';
+  }
+}
+
+/**
  * Thrown when input validation fails.
  *
  * Extends Error, named ValidationError
